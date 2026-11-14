@@ -1,0 +1,18 @@
+{
+  "name": "library-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "성남시도서관 여러 계정의 대출 현황을 한 화면에 모아 보기",
+  "scripts": {
+    "setup": "node setup-accounts.js",
+    "start": "node fetch-loans.js",
+    "debug": "node fetch-loans.js --debug"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "^1.1.0"
+  }
+}

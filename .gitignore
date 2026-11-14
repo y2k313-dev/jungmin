@@ -1,0 +1,7 @@
+node_modules/
+# 개인정보가 들어 있는 파일은 올리지 않습니다
+accounts.json
+dashboard.html
+sample-dashboard.html
+debug/
+site/

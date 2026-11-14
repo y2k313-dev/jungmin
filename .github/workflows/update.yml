@@ -1,0 +1,65 @@
+name: 도서관 대출 현황 갱신
+
+on:
+  schedule:
+    # 매일 한국시간 08:40 (UTC 23:40). GitHub 예약 실행은 몇 분~수십 분 늦을 수 있어 9시보다 조금 일찍 잡았어요.
+    - cron: '40 23 * * *'
+  workflow_dispatch: # Actions 탭에서 "Run workflow" 로 바로 실행
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci --omit=optional --no-audit --no-fund
+
+      - name: 대출 현황 가져오기 + 잠긴 페이지 만들기
+        env:
+          SNLIB_ID: ${{ secrets.SNLIB_ID }}
+          SNLIB_PW: ${{ secrets.SNLIB_PW }}
+          SNLIB_NAME: ${{ secrets.SNLIB_NAME }}
+          SNLIB_ACCOUNTS: ${{ secrets.SNLIB_ACCOUNTS }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+        run: node fetch-loans.js --no-open
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      # GitHub 는 60일 동안 저장소에 변화가 없으면 예약 실행을 멈춥니다. 50일마다 빈 커밋으로 깨워 둡니다.
+      - name: 예약 실행 유지
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 50*24*3600 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "keepalive"
+            git push
+          fi
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
