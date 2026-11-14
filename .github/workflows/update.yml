@@ -5,6 +5,8 @@ on:
     # 매일 한국시간 08:40 (UTC 23:40). GitHub 예약 실행은 몇 분~수십 분 늦을 수 있어 9시보다 조금 일찍 잡았어요.
     - cron: '40 23 * * *'
   workflow_dispatch: # Actions 탭에서 "Run workflow" 로 바로 실행
+  push: # 코드(디자인 등)를 고쳐서 올리면 바로 반영
+    branches: [main]
 
 permissions:
   contents: write
