@@ -224,7 +224,14 @@ async function main() {
   const CI = !!process.env.GITHUB_ACTIONS;
   const accounts = CI ? envAccounts() : loadAccounts();
   if (!accounts.length) {
-    console.log(CI ? 'SNLIB_ID / SNLIB_PW 비밀값(Secrets)이 없어요.' : '등록된 계정이 없어요. 먼저 실행하세요:  node setup-accounts.js');
+    if (CI) {
+      const has = (k) => (process.env[k] ? '있음' : '없음');
+      console.log('도서관 계정 비밀값(Secrets)이 비어 있어요.');
+      console.log(`  SNLIB_ACCOUNTS: ${has('SNLIB_ACCOUNTS')} / SNLIB_ID: ${has('SNLIB_ID')} / SNLIB_PW: ${has('SNLIB_PW')} / DASHBOARD_PASSWORD: ${has('DASHBOARD_PASSWORD')}`);
+      console.log('  Settings → Secrets and variables → Actions → "Repository secrets" 에 넣었는지 확인하세요.');
+    } else {
+      console.log('등록된 계정이 없어요. 먼저 실행하세요:  node setup-accounts.js');
+    }
     process.exit(1);
   }
   const results = [];
