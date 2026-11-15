@@ -5,6 +5,7 @@ export const M3_TOKENS = `
     --primary: #23694b; --on-primary: #ffffff;
     --primary-container: #aaf2ca; --on-primary-container: #002113;
     --secondary-container: #cfe9d9; --on-secondary-container: #0b1f15;
+    --tertiary-container: #c0e9f9; --on-tertiary-container: #001f29;
     --surface: #f6fbf5; --on-surface: #171d19; --on-surface-variant: #404943;
     --surface-container-low: #f0f5ef; --surface-container: #eaefea; --surface-container-high: #e4eae4;
     --outline: #707973; --outline-variant: #c0c9c1;
@@ -16,6 +17,7 @@ export const M3_TOKENS = `
       --primary: #8ed5ae; --on-primary: #00391f;
       --primary-container: #005234; --on-primary-container: #aaf2ca;
       --secondary-container: #344b3e; --on-secondary-container: #cfe9d9;
+      --tertiary-container: #234c5a; --on-tertiary-container: #c0e9f9;
       --surface: #0f1511; --on-surface: #dee4de; --on-surface-variant: #c0c9c1;
       --surface-container-low: #171d19; --surface-container: #1b211d; --surface-container-high: #262b27;
       --outline: #8a938c; --outline-variant: #404943;

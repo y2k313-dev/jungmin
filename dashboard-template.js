@@ -94,6 +94,14 @@ ${M3_TOKENS}
     background: var(--secondary-container); color: var(--on-secondary-container); }
   .over .dd { background: var(--error); color: var(--on-error); }
   .soon .dd { background: var(--on-warn-container); color: var(--warn-container); }
+  .card-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+  .ext { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid var(--outline); color: var(--on-surface-variant); background: var(--surface); }
+  .ext.e1 { border-color: transparent; background: var(--tertiary-container); color: var(--on-tertiary-container); }
+  .ext.e2 { border-color: transparent; background: var(--on-surface-variant); color: var(--surface); }
+  .chip.can { border-color: transparent; background: var(--primary); color: var(--on-primary); font-weight: 500; }
+  .alert.info { background: var(--primary-container); color: var(--on-primary-container); }
+  .alert ul { margin: 4px 0 0; padding-left: 18px; }
   .card-body { min-width: 0; flex: 1; }
   .card h3 { margin: 4px 0 4px; font-size: 16px; line-height: 22px; font-weight: 500; overflow-wrap: anywhere; word-break: keep-all; }
   .meta { margin: 0; font-size: 14px; line-height: 20px; color: var(--on-surface-variant); overflow-wrap: anywhere; }
@@ -117,6 +125,7 @@ ${M3_TOKENS}
   td.status { color: var(--on-surface-variant); max-width: 260px; }
   tr.over td.status, tr.soon td.status { color: inherit; }
   td .chip { white-space: nowrap; }
+  td .ext { vertical-align: middle; }
   @media (min-width: 1024px) {
     .cards { display: none; }
     .table-wrap { display: block; }
@@ -168,7 +177,11 @@ const rows = DATA.accounts.flatMap((a) => (a.loans || []).map((l) => ({ ...l, ac
 rows.sort((x, y) => (x.d ?? 9999) - (y.d ?? 9999) || x.borrower.localeCompare(y.borrower) || x.title.localeCompare(y.title));
 
 document.getElementById('gen').textContent = new Date(DATA.generatedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit' }) + ' 갱신';
-document.getElementById('alerts').innerHTML = DATA.accounts.map((a) =>
+const md2 = (d) => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '?';
+const extDone = DATA.accounts.flatMap((a) => a.extended || []);
+document.getElementById('alerts').innerHTML = (extDone.length ? '<div class="alert info"><span aria-hidden="true">↻</span><div>오늘 자동 연장 ' + extDone.filter((e) => e.ok).length + '/' + extDone.length + '권<ul>' +
+  extDone.map((e) => '<li>' + esc(e.title) + ' (' + esc(e.borrower) + ') ' + (e.ok ? md2(e.before) + ' → ' + md2(e.after) : '실패: ' + esc(e.msg)) + '</li>').join('') + '</ul></div></div>' : '') +
+  DATA.accounts.map((a) =>
   (a.error ? '<div class="alert err" role="alert"><span aria-hidden="true">⚠</span><span>' + esc(a.name) + ': ' + esc(a.error) + '</span></div>' : '') +
   (a.warning ? '<div class="alert warn"><span aria-hidden="true">ℹ</span><span>' + esc(a.name) + ': ' + esc(a.warning) + '</span></div>' : '')).join('');
 
@@ -185,6 +198,15 @@ fill('fAcc', rows.map((r) => r.borrower));
 fill('fLib', rows.map((r) => r.library));
 
 let groupBy = 'due';
+// 대출 기간으로 연장 횟수 추정: 2주=연장0, 3주=연장1, 4주=연장2 (1회 연장 = 7일)
+function extCount(r) {
+  if (!r.loanDate || !r.dueDate) return null;
+  const days = Math.round((new Date(r.dueDate + 'T00:00:00') - new Date(r.loanDate + 'T00:00:00')) / 86400000);
+  if (days % 7) return null;
+  const n = days / 7 - 2;
+  return n >= 0 && n <= 2 ? n : null;
+}
+const extBadge = (r) => { const n = extCount(r); return n === null ? '' : '<span class="ext e' + n + '" title="' + (n >= 2 ? '더 연장할 수 없어요' : '앞으로 ' + (2 - n) + '번 더 연장 가능') + '">연장' + n + '</span>'; };
 const cls = (r) => r.d !== null && r.d < 0 ? 'over' : r.d !== null && r.d <= 3 ? 'soon' : '';
 function ddayText(d) { if (d === null) return '-'; if (d < 0) return (-d) + '일 연체'; if (d === 0) return '오늘'; return 'D-' + d; }
 
@@ -192,23 +214,24 @@ function cards(list, hide) {
   return '<div class="cards">' + list.map((r) => {
     const meta = [hide !== 'borrower' && r.borrower, hide !== 'library' && r.library].filter(Boolean).map(esc).join(' · ');
     return '<article class="card ' + cls(r) + '">' +
-      '<span class="dd">' + ddayText(r.d) + '</span>' +
+      '<div class="card-side">' + extBadge(r) + '<span class="dd">' + ddayText(r.d) + '</span></div>' +
       '<div class="card-body"><h3>' + esc(r.title) + '</h3>' +
       (meta ? '<p class="meta">' + meta + '</p>' : '') +
       '<p class="meta">반납 ' + md(r.dueDate) + (r.loanDate ? ' · 대출 ' + md(r.loanDate) : '') + '</p>' +
-      (r.status && r.status !== '대출중' ? '<div class="chips"><span class="chip">' + esc(r.status) + '</span></div>' : '') +
+      ((r.canExtend || (r.status && r.status !== '대출중')) ? '<div class="chips">' + (r.canExtend ? '<span class="chip can">연장 가능</span>' : '') + (r.status && r.status !== '대출중' ? '<span class="chip">' + esc(r.status) + '</span>' : '') + '</div>' : '') +
       '</div></article>';
   }).join('') + '</div>';
 }
 function table(list, hide) {
-  const cols = [['반납','dday'],['책 제목','title'],['대출자','borrower'],['도서관','library'],['반납예정일','dueDate'],['대출일','loanDate'],['상태','status']]
+  const cols = [['반납','dday'],['연장','ext'],['책 제목','title'],['대출자','borrower'],['도서관','library'],['반납예정일','dueDate'],['대출일','loanDate'],['상태','status']]
     .filter(([, k]) => k !== hide);
   return '<div class="table-wrap"><table><thead><tr>' + cols.map(([h]) => '<th scope="col">' + h + '</th>').join('') + '</tr></thead><tbody>' +
     list.map((r) => '<tr class="' + cls(r) + '">' + cols.map(([, k]) =>
       k === 'dday' ? '<td class="nw"><span class="dd">' + ddayText(r.d) + '</span></td>'
+      : k === 'ext' ? '<td class="nw">' + extBadge(r) + '</td>'
       : k === 'library' || k === 'borrower' ? '<td class="nw"><span class="chip">' + esc(r[k]) + '</span></td>'
       : k === 'title' ? '<td class="title">' + esc(r.title) + '</td>'
-      : k === 'status' ? '<td class="status">' + esc(r.status) + '</td>'
+      : k === 'status' ? '<td class="status">' + (r.canExtend ? '<span class="chip can">연장 가능</span> ' : '') + esc(r.status) + '</td>'
       : '<td class="nw">' + esc(r[k] || '') + '</td>').join('') + '</tr>').join('') +
     '</tbody></table></div>';
 }
