@@ -37,7 +37,7 @@ class Session {
     let opts = { method, body };
     for (let hop = 0; hop < 10; hop++) {
       const headers = { 'User-Agent': UA, Cookie: this.cookieHeader(), Referer: `${BASE}/intro/index.do`, ...(hop === 0 ? extraHeaders : {}) };
-      if (opts.body) headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded';
       const res = await fetch(current, { method: opts.method, body: opts.body, headers, redirect: 'manual', signal: AbortSignal.timeout(30000) });
       this.store(res);
       if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
@@ -183,7 +183,11 @@ export function parseLoans(html) {
   if (!items.length) items = parseLists($);
   const empty = /대출\s*(중인|하신)?\s*(자료|도서|내역)[^<]{0,10}없/.test(html);
   const total = Number(/대출현황건수\s*:\s*<span[^>]*>\s*(\d+)/.exec(html)?.[1] ?? NaN);
-  return { items, empty, total };
+  // 가족회원 선택 상자: 이름 → 이용자키 (가족 책을 연장할 때 그 사람의 키가 필요함)
+  const family = {};
+  $('#searchUserKeySel option').each((_, o) => { const v = $(o).attr('value'); if (v && v !== 'ALL') family[norm($(o).text())] = v; });
+  const ownKey = $('#searchUserKey').attr('value') || '';
+  return { items, empty, total, family, ownKey };
 }
 
 // ---------- 계정별 조회 ----------
@@ -210,15 +214,24 @@ async function fetchAccount(acc) {
   // 자동 연장: 사이트가 연장 가능하다고 표시한 책만 신청합니다 (연체·예약·DVD 등은 사이트가 막아 둠)
   const extended = [];
   if (AUTO_EXTEND) {
+    // 사이트의 "일괄연기신청" 버튼과 같은 방식: 대출자(가족 구성원)별 이용자키를 함께 보냅니다
+    const byKey = new Map();
     for (const it of list.items.filter((x) => x.canExtend)) {
-      const res = await s.request(`${BASE}/loan/returnDelayProc.do`, {
+      const key = list.family[it.borrower] || list.ownKey;
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(it);
+    }
+    for (const [userKey, books] of byKey) {
+      await s.request(`${LOAN_URL}?searchUserKey=${encodeURIComponent(userKey)}`); // 그 사람 목록을 먼저 열기
+      const payload = books.map((it) => ({ ...it.extendKey, title: it.title, searchUserKey: userKey }));
+      const res = await s.request(`${BASE}/loan/returnDelayBatchProc.do`, {
         method: 'POST',
-        body: new URLSearchParams(it.extendKey).toString(),
-        extraHeaders: { Accept: 'application/json, text/javascript, */*', 'X-Requested-With': 'XMLHttpRequest', Referer: LOAN_URL },
+        body: JSON.stringify(payload),
+        extraHeaders: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', Referer: LOAN_URL },
       });
       let msg = '';
       try { msg = JSON.parse(res.html).msg || ''; } catch { msg = `응답 확인 불가 (HTTP ${res.status})`; }
-      extended.push({ title: it.title, borrower: it.borrower, before: it.dueDate, msg });
+      for (const it of books) extended.push({ title: it.title, borrower: it.borrower, before: it.dueDate, msg });
       await new Promise((r) => setTimeout(r, 500));
     }
     if (extended.length) {
@@ -245,19 +258,21 @@ async function loadAll(s, acc) {
   const items = [];
   let empty = false;
   let total = NaN;
+  let family = {};
+  let ownKey = "";
   for (let page = 1; page <= 20; page++) {
     const loan = await s.request(`${LOAN_URL}?searchUserKey=ALL&searchLibrary=ALL&currentPageNo=${page}`);
     if (DEBUG) fs.writeFileSync(path.join(DEBUG_DIR, `${acc.userId}-loan-p${page}.html`), loan.html);
     if (isLoginPage(loan.html)) return { loggedOut: true };
     const r = parseLoans(loan.html);
-    if (page === 1) { empty = r.empty; total = r.total; }
+    if (page === 1) { empty = r.empty; total = r.total; family = r.family; ownKey = r.ownKey; }
     const before = items.length;
     for (const it of r.items) {
       if (!items.some((x) => x.title === it.title && x.borrower === it.borrower && x.loanDate === it.loanDate)) items.push(it);
     }
     if (items.length === before || !(items.length < total)) break;
   }
-  return { items, empty, total };
+  return { items, empty, total, family, ownKey };
 }
 
 async function main() {
