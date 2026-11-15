@@ -1,7 +1,7 @@
 // 조회 결과를 한 장짜리 HTML 대시보드로 만듭니다 (외부 파일 없이 열림).
-// 디자인: 안드로이드 Material 3 (Material You) 스타일
+// 디자인: 흰 바탕 + 초록 포인트의 심플한 스타일
 //  - 1024px 미만(폰·태블릿): 카드 목록 / 1024px 이상(데스크톱): 표
-import { M3_TOKENS } from './theme.js';
+import { THEME_TOKENS } from './theme.js';
 
 export function renderDashboard(data, now) {
   const json = JSON.stringify({ accounts: data, generatedAt: now.toISOString() }).replace(/</g, '\\u003c');
@@ -11,135 +11,138 @@ export function renderDashboard(data, now) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#f6fbf5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1511" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1e9150">
 <title>도서관 대출 현황</title>
 <style>
-${M3_TOKENS}
+${THEME_TOKENS}
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--surface); color: var(--on-surface);
-    font-family: Roboto, "Noto Sans KR", "Pretendard", "Malgun Gothic", system-ui, sans-serif;
-    font-size: 16px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px calc(32px + env(safe-area-inset-bottom)); }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Pretendard", "Noto Sans KR", Roboto, "Malgun Gothic", system-ui, sans-serif;
+    font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px calc(40px + env(safe-area-inset-bottom)); }
 
-  /* ---------- Top app bar ---------- */
-  .appbar { position: sticky; top: 0; z-index: 5; background: var(--surface);
-    padding: calc(12px + env(safe-area-inset-top)) 16px 12px; transition: background .2s; }
-  .appbar.scrolled { background: var(--surface-container); }
-  .appbar-in { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 12px; min-height: 48px; }
-  .appbar-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
-    background: var(--primary-container); color: var(--on-primary-container); flex: none; }
-  .appbar h1 { font-size: 22px; line-height: 28px; font-weight: 500; margin: 0; }
-  .appbar .sub { font-size: 13px; line-height: 18px; color: var(--on-surface-variant); }
+  /* ---------- 상단 초록 헤더 ---------- */
+  .appbar { position: sticky; top: 0; z-index: 5; background: var(--green); color: #fff;
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px; }
+  .appbar.scrolled { box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+  .appbar-in { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; border-radius: 10px; flex: none; display: grid; place-items: center;
+    background: rgba(255, 255, 255, .18); color: #fff; }
+  .appbar h1 { font-size: 19px; line-height: 26px; font-weight: 700; margin: 0; letter-spacing: -.2px; }
+  .appbar .sub { font-size: 12.5px; line-height: 18px; color: rgba(255, 255, 255, .82); }
 
-  /* ---------- Alerts ---------- */
-  .alert { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px;
-    margin: 8px 0; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
-  .alert.err { background: var(--error-container); color: var(--on-error-container); }
-  .alert.warn { background: var(--warn-container); color: var(--on-warn-container); }
-
-  /* ---------- Summary cards ---------- */
-  .summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 8px 0 20px; }
-  @media (min-width: 600px) { .summary { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-  .stat { background: var(--surface-container-low); border-radius: 16px; padding: 16px; min-width: 0; }
-  .stat b { display: block; font-size: 32px; line-height: 40px; font-weight: 400; }
-  .stat span { display: block; font-size: 14px; line-height: 20px; color: var(--on-surface-variant); font-weight: 500; }
-  .stat.danger.on { background: var(--error-container); }
-  .stat.danger.on b, .stat.danger.on span { color: var(--on-error-container); }
-  .stat.warn.on { background: var(--warn-container); }
-  .stat.warn.on b, .stat.warn.on span { color: var(--on-warn-container); }
-
-  /* ---------- Segmented button ---------- */
-  .controls { display: grid; gap: 12px; margin-bottom: 16px; }
-  @media (min-width: 768px) { .controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; } }
-  .seg { display: flex; border: 1px solid var(--outline); border-radius: 999px; overflow: hidden; }
-  .seg button { flex: 1 1 0; min-width: 0; min-height: 48px; border: 0; border-left: 1px solid var(--outline); background: transparent;
-    color: var(--on-surface); font: inherit; font-size: 14px; font-weight: 500; letter-spacing: .1px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; white-space: nowrap; }
-  .seg button:first-child { border-left: 0; }
-  .seg button .check { display: none; }
-  .seg button.on { background: var(--secondary-container); color: var(--on-secondary-container); }
-  .seg button.on .check { display: inline; }
-  .seg button:focus-visible, .field select:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-
-  /* ---------- Outlined dropdown fields ---------- */
-  .filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-  .field { position: relative; min-width: 0; }
-  .field label { position: absolute; top: -9px; left: 12px; padding: 0 4px; font-size: 12px; line-height: 16px;
-    color: var(--on-surface-variant); background: var(--surface); pointer-events: none; }
-  .field select { width: 100%; height: 56px; appearance: none; -webkit-appearance: none; font: inherit; font-size: 16px;
-    color: var(--on-surface); background: transparent; border: 1px solid var(--outline); border-radius: 4px;
-    padding: 0 40px 0 16px; cursor: pointer; text-overflow: ellipsis; }
-  .field::after { content: ""; position: absolute; right: 16px; top: 50%; margin-top: -3px; border: 5px solid transparent;
-    border-top: 6px solid var(--on-surface-variant); pointer-events: none; }
-  .field select option { background: var(--surface-container-high); color: var(--on-surface); }
-
-  /* ---------- Section header ---------- */
-  .group { margin-bottom: 24px; }
-  .group h2 { font-size: 16px; line-height: 24px; font-weight: 500; margin: 8px 4px 8px; color: var(--primary);
-    display: flex; align-items: center; gap: 8px; }
-  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 8px;
-    border-radius: 999px; background: var(--secondary-container); color: var(--on-secondary-container); font-size: 12px; font-weight: 500; }
-
-  /* ---------- Cards (phone / tablet) ---------- */
-  .cards { display: grid; gap: 8px; }
-  @media (min-width: 600px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-  .card { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 16px; min-width: 0;
-    background: var(--surface-container-low); }
-  .card.over { background: var(--error-container); color: var(--on-error-container); }
-  .card.soon { background: var(--warn-container); color: var(--on-warn-container); }
-  .dd { flex: none; min-width: 56px; height: 32px; padding: 0 10px; border-radius: 8px; display: inline-flex;
-    align-items: center; justify-content: center; font-size: 14px; font-weight: 700; white-space: nowrap;
-    background: var(--secondary-container); color: var(--on-secondary-container); }
-  .over .dd { background: var(--error); color: var(--on-error); }
-  .soon .dd { background: var(--on-warn-container); color: var(--warn-container); }
-  .card-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
-  .ext { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 8px; border-radius: 6px;
-    font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid var(--outline); color: var(--on-surface-variant); background: var(--surface); }
-  .ext.e1 { border-color: transparent; background: var(--tertiary-container); color: var(--on-tertiary-container); }
-  .ext.e2 { border-color: transparent; background: var(--on-surface-variant); color: var(--surface); }
-  .chip.can { border-color: transparent; background: var(--primary); color: var(--on-primary); font-weight: 500; }
-  .alert.info { background: var(--primary-container); color: var(--on-primary-container); }
+  /* ---------- 알림 ---------- */
+  .alerts { margin-top: 16px; }
+  .alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px;
+    margin-bottom: 8px; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
+  .alert.info { background: var(--green-soft); color: var(--green-text); }
+  .alert.err { background: var(--red-soft); color: var(--red-text); }
+  .alert.warn { background: var(--amber-soft); color: var(--amber-text); }
   .alert ul { margin: 4px 0 0; padding-left: 18px; }
-  .card-body { min-width: 0; flex: 1; }
-  .card h3 { margin: 4px 0 4px; font-size: 16px; line-height: 22px; font-weight: 500; overflow-wrap: anywhere; word-break: keep-all; }
-  .meta { margin: 0; font-size: 14px; line-height: 20px; color: var(--on-surface-variant); overflow-wrap: anywhere; }
-  .card.over .meta, .card.soon .meta { color: inherit; opacity: .85; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-radius: 8px;
-    border: 1px solid var(--outline-variant); font-size: 13px; line-height: 18px; max-width: 100%; overflow-wrap: anywhere; }
-  .card.over .chip, .card.soon .chip { border-color: currentColor; }
 
-  /* ---------- Table (desktop) ---------- */
-  .table-wrap { display: none; background: var(--surface-container-low); border-radius: 16px; overflow: hidden; }
+  /* ---------- 요약 ---------- */
+  .summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+  @media (min-width: 600px) { .summary { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+    min-width: 0; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+  .stat .ic { width: 36px; height: 36px; border-radius: 10px; flex: none; display: grid; place-items: center;
+    background: var(--gray-soft); color: var(--sub); }
+  .stat.total .ic { background: var(--green-soft); color: var(--green); }
+  .stat.danger.on .ic { background: var(--red-soft); color: var(--red-text); }
+  .stat.warn.on .ic { background: var(--amber-soft); color: var(--amber-text); }
+  .stat span { display: block; font-size: 12.5px; line-height: 18px; color: var(--muted); }
+  .stat b { display: block; font-size: 24px; line-height: 30px; font-weight: 800; letter-spacing: -.5px; color: var(--text); }
+  .stat.total b { color: var(--green); }
+  .stat.danger.on b { color: var(--red-text); }
+  .stat.warn.on b { color: var(--amber-text); }
+
+  /* ---------- 목록 패널 ---------- */
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; }
+  @media (max-width: 599px) {
+    .panel { padding: 14px 10px; border-radius: 14px; }
+    .card { padding: 12px; gap: 10px; }
+    .card-side { width: 54px; }
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .panel-head h2 { font-size: 16px; line-height: 24px; font-weight: 700; margin: 0; }
+  .count { font-size: 13px; color: var(--muted); }
+
+  .controls { display: grid; gap: 10px; margin-bottom: 16px; }
+  @media (min-width: 768px) { .controls { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: end; } }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--gray-soft); }
+  .seg button { flex: 1 1 0; min-width: 0; min-height: 44px; border: 0; border-radius: 9px; background: transparent;
+    color: var(--sub); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; padding: 0 6px; }
+  .seg button.on { background: var(--card); color: var(--green-text); box-shadow: 0 1px 3px rgba(16, 24, 40, .1); }
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .field { position: relative; min-width: 0; }
+  .field label { display: block; font-size: 12px; line-height: 16px; color: var(--muted); margin: 0 0 4px 2px; }
+  .field select { width: 100%; height: 48px; appearance: none; -webkit-appearance: none; font: inherit; font-size: 15px;
+    color: var(--text); background: var(--card); border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 0 36px 0 14px; cursor: pointer; text-overflow: ellipsis; }
+  .field::after { content: ""; position: absolute; right: 14px; bottom: 21px; width: 7px; height: 7px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
+  .seg button:focus-visible, .field select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  .group { margin-bottom: 20px; }
+  .group:last-child { margin-bottom: 0; }
+  .group h2 { font-size: 15px; line-height: 22px; font-weight: 700; margin: 4px 2px 10px; display: flex; align-items: center; gap: 8px; }
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px;
+    border-radius: 999px; background: var(--green-soft); color: var(--green-text); font-size: 12px; font-weight: 700; }
+
+  /* ---------- 카드 (폰·태블릿) ---------- */
+  .cards { display: grid; gap: 8px; }
+  @media (min-width: 600px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+  .card { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; min-width: 0;
+    background: var(--card); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  .card.over::before, .card.soon::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .card.over::before { background: var(--red-text); }
+  .card.soon::before { background: var(--amber-text); }
+  .card-side { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 60px; }
+  .card-body { min-width: 0; flex: 1; }
+  .card h3 { margin: 1px 0 4px; font-size: 15px; line-height: 21px; font-weight: 700; overflow-wrap: anywhere; word-break: keep-all; }
+  .meta { margin: 0; font-size: 13px; line-height: 19px; color: var(--muted); overflow-wrap: anywhere; }
+  .meta b { color: var(--sub); font-weight: 600; }
+
+  .dd { display: inline-flex; align-items: center; justify-content: center; height: 26px; padding: 0 8px; border-radius: 7px;
+    font-size: 12.5px; font-weight: 700; white-space: nowrap; background: var(--gray-soft); color: var(--sub); }
+  .over .dd { background: var(--red-soft); color: var(--red-text); }
+  .soon .dd { background: var(--amber-soft); color: var(--amber-text); }
+  .ext { display: inline-flex; align-items: center; justify-content: center; height: 22px; padding: 0 7px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; white-space: nowrap; border: 1px solid var(--line-strong); color: var(--muted); background: var(--card); }
+  .ext.e1 { border-color: transparent; background: var(--green-soft); color: var(--green-text); }
+  .ext.e2 { border-color: transparent; background: var(--dark); color: #fff; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 9px; border-radius: 999px;
+    background: var(--gray-soft); color: var(--sub); font-size: 12px; line-height: 18px; font-weight: 500; max-width: 100%; overflow-wrap: anywhere; }
+  .chip.can { background: var(--green); color: #fff; font-weight: 700; }
+
+  /* ---------- 표 (데스크톱) ---------- */
+  .table-wrap { display: none; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 12px 16px; text-align: left; font-size: 14px; line-height: 20px; vertical-align: middle; }
-  th { color: var(--on-surface-variant); font-weight: 500; font-size: 13px; border-bottom: 1px solid var(--outline-variant); white-space: nowrap; }
-  td { border-bottom: 1px solid var(--outline-variant); }
+  th, td { padding: 12px 14px; text-align: left; font-size: 14px; line-height: 20px; vertical-align: middle; }
+  th { background: #fafbfc; color: var(--muted); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { border-bottom: 1px solid var(--line); }
   tbody tr:last-child td { border-bottom: 0; }
-  tr.over td { background: var(--error-container); color: var(--on-error-container); }
-  tr.soon td { background: var(--warn-container); color: var(--on-warn-container); }
-  td.nw { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  td.title { font-weight: 500; min-width: 220px; }
-  td.status { color: var(--on-surface-variant); max-width: 260px; }
-  tr.over td.status, tr.soon td.status { color: inherit; }
+  tbody tr:hover td { background: #fafbfc; }
+  td.nw { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--sub); }
+  td.title { font-weight: 700; min-width: 220px; }
+  td.status { color: var(--muted); max-width: 260px; font-size: 13px; }
   td .chip { white-space: nowrap; }
-  td .ext { vertical-align: middle; }
   @media (min-width: 1024px) {
     .cards { display: none; }
     .table-wrap { display: block; }
   }
 
-  .empty { color: var(--on-surface-variant); padding: 32px 16px; text-align: center; background: var(--surface-container-low); border-radius: 16px; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  .empty { color: var(--muted); padding: 32px 16px; text-align: center; border: 1px dashed var(--line-strong); border-radius: 12px; }
 </style>
 </head>
 <body>
 <header class="appbar" id="appbar">
   <div class="appbar-in">
-    <div class="appbar-icon" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+    <div class="logo" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
     </div>
     <div style="min-width:0">
       <h1>도서관 대출 현황</h1>
@@ -148,20 +151,23 @@ ${M3_TOKENS}
   </div>
 </header>
 <main class="wrap">
-  <div id="alerts"></div>
+  <div class="alerts" id="alerts"></div>
   <section class="summary" id="summary" aria-label="요약"></section>
-  <section class="controls" aria-label="보기 설정">
-    <div class="seg" role="group" aria-label="묶어 보기">
-      <button data-g="due" class="on" aria-pressed="true"><span class="check">✓</span>반납일순</button>
-      <button data-g="borrower" aria-pressed="false"><span class="check">✓</span>사람별</button>
-      <button data-g="library" aria-pressed="false"><span class="check">✓</span>도서관별</button>
+  <section class="panel">
+    <div class="panel-head"><h2>대출 목록</h2><span class="count" id="count"></span></div>
+    <div class="controls" aria-label="보기 설정">
+      <div class="seg" role="group" aria-label="묶어 보기">
+        <button data-g="due" class="on" aria-pressed="true">반납일순</button>
+        <button data-g="borrower" aria-pressed="false">사람별</button>
+        <button data-g="library" aria-pressed="false">도서관별</button>
+      </div>
+      <div class="filters">
+        <div class="field"><label for="fAcc">대출자</label><select id="fAcc"><option value="">전체</option></select></div>
+        <div class="field"><label for="fLib">도서관</label><select id="fLib"><option value="">전체</option></select></div>
+      </div>
     </div>
-    <div class="filters">
-      <div class="field"><label for="fAcc">대출자</label><select id="fAcc"><option value="">전체</option></select></div>
-      <div class="field"><label for="fLib">도서관</label><select id="fLib"><option value="">전체</option></select></div>
-    </div>
+    <div id="list"></div>
   </section>
-  <div id="list"></div>
 </main>
 <script>
 const DATA = ${json};
@@ -187,11 +193,18 @@ document.getElementById('alerts').innerHTML = (extDone.length ? '<div class="ale
 
 const over = rows.filter((r) => r.d !== null && r.d < 0).length;
 const soon = rows.filter((r) => r.d !== null && r.d >= 0 && r.d <= 3).length;
+const IC = {
+  book: '<path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>',
+  alert: '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>',
+  clock: '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.5 11H11V7h1.5v4.7l3.6 2.1-.8 1.3-3.8-2.1z"/>',
+  people: '<path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 2 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z"/>',
+};
+const stat = (c, ic, label, n) => '<div class="stat ' + c + '"><div class="ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">' + IC[ic] + '</svg></div><div><span>' + label + '</span><b>' + n + '</b></div></div>';
 document.getElementById('summary').innerHTML =
-  '<div class="stat"><b>' + rows.length + '</b><span>대출 중</span></div>' +
-  '<div class="stat danger' + (over ? ' on' : '') + '"><b>' + over + '</b><span>연체</span></div>' +
-  '<div class="stat warn' + (soon ? ' on' : '') + '"><b>' + soon + '</b><span>3일 안에 반납</span></div>' +
-  '<div class="stat"><b>' + new Set(rows.map((r) => r.borrower)).size + '</b><span>대출자</span></div>';
+  stat('total', 'book', '대출 중', rows.length) +
+  stat('danger' + (over ? ' on' : ''), 'alert', '연체', over) +
+  stat('warn' + (soon ? ' on' : ''), 'clock', '3일 안에 반납', soon) +
+  stat('', 'people', '대출자', new Set(rows.map((r) => r.borrower)).size);
 
 const fill = (id, vals) => { const s = document.getElementById(id); [...new Set(vals)].sort().forEach((v) => s.insertAdjacentHTML('beforeend', '<option>' + esc(v) + '</option>')); };
 fill('fAcc', rows.map((r) => r.borrower));
@@ -217,7 +230,7 @@ function cards(list, hide) {
       '<div class="card-side">' + extBadge(r) + '<span class="dd">' + ddayText(r.d) + '</span></div>' +
       '<div class="card-body"><h3>' + esc(r.title) + '</h3>' +
       (meta ? '<p class="meta">' + meta + '</p>' : '') +
-      '<p class="meta">반납 ' + md(r.dueDate) + (r.loanDate ? ' · 대출 ' + md(r.loanDate) : '') + '</p>' +
+      '<p class="meta"><b>반납 ' + md(r.dueDate) + '</b>' + (r.loanDate ? ' · 대출 ' + md(r.loanDate) : '') + '</p>' +
       ((r.canExtend || (r.status && r.status !== '대출중')) ? '<div class="chips">' + (r.canExtend ? '<span class="chip can">연장 가능</span>' : '') + (r.status && r.status !== '대출중' ? '<span class="chip">' + esc(r.status) + '</span>' : '') + '</div>' : '') +
       '</div></article>';
   }).join('') + '</div>';
@@ -241,6 +254,7 @@ function render() {
   const fa = document.getElementById('fAcc').value, fl = document.getElementById('fLib').value;
   const list = rows.filter((r) => (!fa || r.borrower === fa) && (!fl || r.library === fl));
   const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length + '권';
   if (groupBy === 'due') { el.innerHTML = view(list); return; }
   const groups = {};
   list.forEach((r) => (groups[r[groupBy]] ||= []).push(r));

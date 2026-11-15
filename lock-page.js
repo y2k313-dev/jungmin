@@ -1,7 +1,7 @@
 // 대시보드 HTML 을 비밀번호로 암호화한 한 장짜리 페이지로 만듭니다.
 // 공개 웹에 올라가도 비밀번호를 모르면 내용을 볼 수 없습니다 (AES-256-GCM, PBKDF2-SHA256).
 import crypto from 'node:crypto';
-import { M3_TOKENS } from './theme.js';
+import { THEME_TOKENS } from './theme.js';
 
 const ITER = 300000;
 
@@ -21,37 +21,34 @@ export function renderLocked(html, password) {
 <meta name="robots" content="noindex, nofollow">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f6fbf5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1511" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1e9150">
 <title>도서관 대출 현황</title>
 <style>
-${M3_TOKENS}
+${THEME_TOKENS}
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px;
-    background: var(--surface); color: var(--on-surface);
-    font-family: Roboto, "Noto Sans KR", "Pretendard", "Malgun Gothic", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-  form { background: var(--surface-container-high); border-radius: 28px; padding: 24px; width: min(360px, 100%); }
-  .icon { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 16px;
-    background: var(--primary-container); color: var(--on-primary-container); }
-  h1 { font-size: 24px; line-height: 32px; font-weight: 400; margin: 0 0 4px; }
-  p { color: var(--on-surface-variant); font-size: 14px; line-height: 20px; margin: 0 0 24px; }
-  .field { position: relative; }
-  .field input { width: 100%; height: 56px; font: inherit; font-size: 16px; padding: 0 16px; border-radius: 4px;
-    border: 1px solid var(--outline); background: transparent; color: var(--on-surface); }
-  .field input:focus { outline: none; border: 2px solid var(--primary); padding: 0 15px; }
-  .field label { position: absolute; top: -9px; left: 12px; padding: 0 4px; font-size: 12px; line-height: 16px;
-    color: var(--on-surface-variant); background: var(--surface-container-high); }
-  .field input:focus + label { color: var(--primary); }
-  .field.bad input { border: 2px solid var(--error); padding: 0 15px; }
-  .field.bad label { color: var(--error); }
-  .err { color: var(--error); font-size: 12px; line-height: 16px; min-height: 16px; margin: 4px 16px 0; }
-  .check { display: flex; align-items: center; gap: 12px; min-height: 48px; margin: 8px 0 16px; cursor: pointer; font-size: 14px; }
-  .check input { width: 18px; height: 18px; margin: 15px; accent-color: var(--primary); cursor: pointer; }
-  .check span { margin-left: -12px; }
-  button { width: 100%; height: 48px; font: inherit; font-size: 14px; font-weight: 500; letter-spacing: .1px; border: 0;
-    border-radius: 999px; background: var(--primary); color: var(--on-primary); cursor: pointer; }
+    background: var(--bg); color: var(--text);
+    font-family: "Pretendard", "Noto Sans KR", Roboto, "Malgun Gothic", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  form { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px 24px 24px;
+    width: min(360px, 100%); box-shadow: 0 4px 24px rgba(16, 24, 40, .06); }
+  .icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 16px;
+    background: var(--green-soft); color: var(--green); }
+  h1 { font-size: 21px; line-height: 30px; font-weight: 800; margin: 0 0 4px; letter-spacing: -.3px; }
+  p { color: var(--muted); font-size: 14px; line-height: 20px; margin: 0 0 22px; }
+  .field { display: flex; flex-direction: column-reverse; }
+  .field label { font-size: 12.5px; line-height: 18px; color: var(--sub); font-weight: 600; margin: 0 0 6px 2px; }
+  .field input { width: 100%; height: 52px; font: inherit; font-size: 16px; padding: 0 14px; border-radius: 10px;
+    border: 1px solid var(--line-strong); background: var(--card); color: var(--text); }
+  .field input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .field.bad input { border-color: var(--red-text); box-shadow: 0 0 0 3px var(--red-soft); }
+  .err { color: var(--red-text); font-size: 12.5px; line-height: 18px; min-height: 18px; margin: 6px 2px 0; }
+  .check { display: flex; align-items: center; min-height: 48px; margin: 4px 0 12px; cursor: pointer; font-size: 14px; color: var(--sub); }
+  .check input { width: 18px; height: 18px; margin: 15px 12px 15px 0; accent-color: var(--green); cursor: pointer; }
+  button { width: 100%; height: 50px; font: inherit; font-size: 15px; font-weight: 700; border: 0;
+    border-radius: 12px; background: var(--green); color: #fff; cursor: pointer; }
+  button:hover { background: var(--green-dark); }
   button:disabled { opacity: .6; }
-  button:focus-visible, .check input:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+  button:focus-visible, .check input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 </style>
 </head>
 <body>
