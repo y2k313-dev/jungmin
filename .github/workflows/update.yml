@@ -2,9 +2,18 @@ name: 도서관 대출 현황 갱신
 
 on:
   schedule:
-    # 매일 한국시간 05:40 (UTC 20:40). GitHub 예약 실행은 몇 분~수십 분 늦을 수 있어 6시보다 조금 일찍 잡았어요.
-    - cron: '40 20 * * *'
+    # GitHub 무료 예약 실행은 몇 시간씩 늦거나 가끔 건너뛰어서, 여러 시각에 걸어 둡니다 (여러 번 돌아도 문제없음).
+    # 한국시간 05:17 / 05:47 / 06:17 / 06:47 (정각은 GitHub 가 가장 붐벼서 피함)
+    - cron: '17 20 * * *'
+    - cron: '47 20 * * *'
+    - cron: '17 21 * * *'
+    - cron: '47 21 * * *'
   workflow_dispatch: # Actions 탭에서 "Run workflow" 로 바로 실행
+    inputs:
+      extend:
+        description: '연장 가능한 책 반납연기 신청'
+        type: boolean
+        default: true
   push: # 코드(디자인 등)를 고쳐서 올리면 바로 반영
     branches: [main]
 
@@ -38,8 +47,8 @@ jobs:
           SNLIB_NAME: ${{ secrets.SNLIB_NAME }}
           SNLIB_ACCOUNTS: ${{ secrets.SNLIB_ACCOUNTS }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
-          # 예약 실행(매일 아침)일 때만 연장 가능한 책을 자동으로 반납연기 신청합니다
-          AUTO_EXTEND: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
+          # 예약 실행과 직접 실행(Run workflow)일 때 연장 가능한 책을 반납연기 신청합니다. 코드 수정(push) 때는 보기만.
+          AUTO_EXTEND: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.extend)) && 'true' || 'false' }}
         run: node fetch-loans.js --no-open
 
       - uses: actions/configure-pages@v5
