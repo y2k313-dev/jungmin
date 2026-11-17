@@ -199,13 +199,13 @@ const rows = DATA.accounts.flatMap((a) => (a.loans || []).map((l) => ({ ...l, ac
 rows.sort((x, y) => (x.d ?? 9999) - (y.d ?? 9999) || x.borrower.localeCompare(y.borrower) || x.title.localeCompare(y.title));
 
 document.getElementById('gen').textContent = new Date(DATA.generatedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit' }) + ' 갱신';
-const md2 = (d) => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '?';
 const extDone = DATA.accounts.flatMap((a) => a.extended || []);
 // 자동 갱신이 멈췄는지 바로 알 수 있도록: 마지막 갱신이 20시간보다 오래됐으면 경고
 const ageH = (Date.now() - new Date(DATA.generatedAt)) / 3600000;
-const stale = ageH > 20 ? '<div class="alert warn" role="alert"><span aria-hidden="true">⚠</span><span>마지막 갱신이 ' + (ageH >= 48 ? Math.floor(ageH / 24) + '일' : Math.floor(ageH) + '시간') + ' 전이에요. 오늘 자동 갱신·연장이 안 됐을 수 있어요. GitHub에서 Run workflow 를 눌러 주세요.</span></div>' : '';
-document.getElementById('alerts').innerHTML = stale + (extDone.length ? '<div class="alert info"><span aria-hidden="true">↻</span><div>오늘 자동 연장 ' + extDone.filter((e) => e.ok).length + '/' + extDone.length + '권<ul>' +
-  extDone.map((e) => '<li>' + esc(e.title) + ' (' + esc(e.borrower) + ') ' + (e.ok ? md2(e.before) + ' → ' + md2(e.after) : '실패: ' + esc(e.msg)) + '</li>').join('') + '</ul></div></div>' : '') +
+const stale = ageH > 20 ? '<div class="alert warn" role="alert"><span aria-hidden="true">⚠</span><span>마지막 갱신이 ' + (ageH >= 48 ? Math.floor(ageH / 24) + '일' : Math.floor(ageH) + '시간') + ' 전이에요. 오늘 자동 갱신·연장이 안 됐을 수 있어요. 오른쪽 위 업데이트 버튼을 눌러 주세요.</span></div>' : '';
+// 자동 연장 목록은 보여주지 않고, 실패한 경우만 한 줄로 알림
+const extFail = extDone.filter((e) => !e.ok).length;
+document.getElementById('alerts').innerHTML = stale + (extFail ? '<div class="alert err" role="alert"><span aria-hidden="true">⚠</span><span>자동 연장에 실패한 책이 ' + extFail + '권 있어요. 도서관 사이트에서 확인해 주세요.</span></div>' : '') +
   DATA.accounts.map((a) =>
   (a.error ? '<div class="alert err" role="alert"><span aria-hidden="true">⚠</span><span>' + esc(a.name) + ': ' + esc(a.error) + '</span></div>' : '') +
   (a.warning ? '<div class="alert warn"><span aria-hidden="true">ℹ</span><span>' + esc(a.name) + ': ' + esc(a.warning) + '</span></div>' : '')).join('');
