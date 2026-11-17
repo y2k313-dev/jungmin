@@ -3,8 +3,9 @@
 //  - 1024px 미만(폰·태블릿): 카드 목록 / 1024px 이상(데스크톱): 표
 import { THEME_TOKENS } from './theme.js';
 
-export function renderDashboard(data, now) {
-  const json = JSON.stringify({ accounts: data, generatedAt: now.toISOString() }).replace(/</g, '\\u003c');
+// opts.update = { url, key, repo }: 상단 "업데이트" 버튼 설정 (없으면 버튼을 숨김)
+export function renderDashboard(data, now, opts = {}) {
+  const json = JSON.stringify({ accounts: data, generatedAt: now.toISOString(), update: opts.update || null }).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="ko">
 <head>
@@ -29,8 +30,19 @@ ${THEME_TOKENS}
   .appbar-in { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
   .logo { width: 36px; height: 36px; border-radius: 10px; flex: none; display: grid; place-items: center;
     background: rgba(255, 255, 255, .18); color: #fff; }
+  .upd { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, .35); border-radius: 999px; background: rgba(255, 255, 255, .14); color: #fff;
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .upd[hidden] { display: none; }
+  .upd:hover { background: rgba(255, 255, 255, .24); }
+  .upd:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .upd:disabled { cursor: default; opacity: .9; }
+  .upd.busy .upd-ic { animation: spin 1s linear infinite; }
+  .upd.err { background: #fff; color: var(--red-text); border-color: #fff; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .upd.busy .upd-ic { animation: none; } }
   .appbar h1 { font-size: 19px; line-height: 26px; font-weight: 700; margin: 0; letter-spacing: -.2px; }
-  .appbar .sub { font-size: 12.5px; line-height: 18px; color: rgba(255, 255, 255, .82); }
+  .appbar .sub { font-size: 12.5px; line-height: 18px; color: rgba(255, 255, 255, .82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* ---------- 알림 ---------- */
   .alerts { margin-top: 16px; }
@@ -144,10 +156,14 @@ ${THEME_TOKENS}
     <div class="logo" aria-hidden="true">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
     </div>
-    <div style="min-width:0">
+    <div style="min-width:0; flex:1">
       <h1>도서관 대출 현황</h1>
       <div class="sub" id="gen"></div>
     </div>
+    <button class="upd" id="upd" type="button" hidden aria-live="polite">
+      <svg class="upd-ic" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <span id="updText">업데이트</span>
+    </button>
   </div>
 </header>
 <main class="wrap">
@@ -275,6 +291,53 @@ document.getElementById('fLib').onchange = render;
 const bar = document.getElementById('appbar');
 addEventListener('scroll', () => bar.classList.toggle('scrolled', scrollY > 8), { passive: true });
 render();
+
+// ---------- 상단 "업데이트" 버튼: 구글 Apps Script → GitHub 실행(정보 갱신 + 연장) → 끝나면 새로고침 ----------
+(function () {
+  const U = DATA.update;
+  const btn = document.getElementById('upd'), txt = document.getElementById('updText');
+  if (!U || !U.url || !U.key) return;
+  btn.hidden = false;
+  const set = (t, cls) => { txt.textContent = t; btn.className = 'upd' + (cls ? ' ' + cls : ''); };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function latestRun(since) {
+    const r = await fetch('https://api.github.com/repos/' + U.repo + '/actions/runs?per_page=5&event=workflow_dispatch', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return (j.workflow_runs || []).find((x) => new Date(x.created_at).getTime() >= since - 90000) || null;
+  }
+  btn.onclick = async () => {
+    btn.disabled = true;
+    set('요청 중', 'busy');
+    try {
+      const res = await fetch(U.url, { method: 'POST', body: JSON.stringify({ key: U.key }) });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.msg || '요청 실패');
+      const since = j.since || Date.now();
+      const t0 = Date.now();
+      // GitHub 실행이 끝날 때까지 기다리기 (보통 1~2분)
+      for (;;) {
+        const sec = Math.round((Date.now() - t0) / 1000);
+        set('갱신 중 ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'), 'busy');
+        if (sec > 600) throw new Error('시간 초과');
+        await sleep(8000);
+        let run = null;
+        try { run = await latestRun(since); } catch (e) { /* 잠깐 실패해도 계속 */ }
+        if (run && run.status === 'completed') {
+          if (run.conclusion !== 'success') throw new Error('GitHub 실행 실패');
+          set('완료!', 'busy');
+          await sleep(4000);
+          location.replace(location.pathname + '?t=' + Date.now());
+          return;
+        }
+      }
+    } catch (e) {
+      set('다시 시도', 'err');
+      btn.title = String(e.message || e);
+      btn.disabled = false;
+    }
+  };
+})();
 </script>
 </body>
 </html>`;

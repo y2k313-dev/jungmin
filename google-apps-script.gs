@@ -39,6 +39,32 @@ function runWorkflow() {
   throw new Error('실패 (' + code + ') ' + hint + ' ' + res.getContentText().slice(0, 200));
 }
 
+// 대시보드의 "업데이트" 버튼이 부르는 곳 (웹 앱으로 배포해야 동작)
+// 스크립트 속성 UPDATE_KEY 와 같은 키를 보낸 요청만 실행합니다.
+function doPost(e) {
+  const props = PropertiesService.getScriptProperties();
+  const out = function (o) {
+    return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  };
+  let body = {};
+  try { body = JSON.parse(e.postData.contents); } catch (x) { /* 빈 요청 */ }
+  const key = props.getProperty('UPDATE_KEY');
+  if (!key || body.key !== key) return out({ ok: false, msg: '업데이트 키가 맞지 않아요' });
+
+  // 연달아 눌러도 3분 안에는 한 번만 실행
+  const last = Number(props.getProperty('LAST_MANUAL') || 0);
+  if (Date.now() - last < 3 * 60 * 1000) return out({ ok: true, already: true, since: last, msg: '이미 업데이트 중이에요' });
+
+  try {
+    runWorkflow();
+  } catch (err) {
+    return out({ ok: false, msg: String(err && err.message || err) });
+  }
+  const now = Date.now();
+  props.setProperty('LAST_MANUAL', String(now));
+  return out({ ok: true, since: now, msg: '업데이트를 시작했어요' });
+}
+
 // 매일 아침 6~7시 자동 실행 예약을 만드는 함수 (한 번만 실행하면 됨)
 function setupDailyTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {

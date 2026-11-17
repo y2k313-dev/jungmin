@@ -309,7 +309,10 @@ async function main() {
   const data = results.map(({ name, userId, loans, error, warning, extended }) => ({ name, userId, loans, error, warning, extended: extended || [] }));
   const ext = results.flatMap((r) => r.extended || []);
   if (AUTO_EXTEND) console.log(ext.length ? `자동 연장 신청 ${ext.length}권 (성공 ${ext.filter((e) => e.ok).length}권)` : '자동 연장: 오늘 연장 가능한 책 없음');
-  const html = renderDashboard(data, new Date());
+  // 상단 "업데이트" 버튼: 웹 앱 주소와 키는 GitHub 비밀값(UPDATE_URL, UPDATE_KEY)으로만 받고, 암호화된 페이지 안에만 들어갑니다
+  const update = process.env.UPDATE_URL && process.env.UPDATE_KEY
+    ? { url: process.env.UPDATE_URL.trim(), key: process.env.UPDATE_KEY.trim(), repo: process.env.GITHUB_REPOSITORY || "y2k313-dev/jungmin" } : null;
+  const html = renderDashboard(data, new Date(), { update });
 
   const viewPw = process.env.DASHBOARD_PASSWORD;
   if (CI || viewPw) {

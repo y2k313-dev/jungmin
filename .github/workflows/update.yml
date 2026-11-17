@@ -47,6 +47,8 @@ jobs:
           SNLIB_NAME: ${{ secrets.SNLIB_NAME }}
           SNLIB_ACCOUNTS: ${{ secrets.SNLIB_ACCOUNTS }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+          UPDATE_URL: ${{ secrets.UPDATE_URL }}
+          UPDATE_KEY: ${{ secrets.UPDATE_KEY }}
           # 예약 실행과 직접 실행(Run workflow)일 때 연장 가능한 책을 반납연기 신청합니다. 코드 수정(push) 때는 보기만.
           AUTO_EXTEND: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.extend)) && 'true' || 'false' }}
         run: node fetch-loans.js --no-open
